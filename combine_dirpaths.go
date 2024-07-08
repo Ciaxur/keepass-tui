@@ -8,14 +8,15 @@ import (
 )
 
 type Node struct {
-  ParentNode *Node;
-  Path map[string]*Node;
+  ParentNode  *Node;
+  Name        string;
+  ChildNodes  []*Node;
 };
 
 func printNode(node *Node, spaces int) {
   _spaces := strings.Repeat(" ", spaces);
-  for key, val := range node.Path {
-    fmt.Printf("%s %s\n", _spaces, key);
+  for _, val := range node.ChildNodes {
+    fmt.Printf("%s %s\n", _spaces, val.Name);
 
     if val != nil {
       printNode(val, spaces + 1);
@@ -52,10 +53,8 @@ func flattenMapToPaths (node *Node) []string {
     if !eltInArray(n, stack) {
       discovered = append(discovered, n);
 
-      for key, edge := range n.Path {
-        if edge == nil {
-          fmt.Println(key);
-        }
+      for _, edge := range n.ChildNodes {
+        fmt.Println(edge.Name);
         stack = append(stack, edge)
       }
     }
@@ -67,18 +66,16 @@ func flattenMapToPaths (node *Node) []string {
 func _processRecursivePaths(scanner *bufio.Scanner, parentNode *Node) {
 	for scanner.Scan() {
 		line := scanner.Text();
+
+    // Keep track of children
+    childNode := &Node{};
+    childNode.ParentNode = parentNode;
+    childNode.Name = line;
+    parentNode.ChildNodes = append(parentNode.ChildNodes, childNode);
+
 		if strings.HasSuffix(line, "/") {
       // New recursive directory node.
-      node := &Node{};
-      node.ParentNode = parentNode;
-      parentNode.Path[line] = node;
-			_processRecursivePaths(scanner, node);
-		} else {
-      if parentNode.Path == nil {
-        parentNode.Path = make(map[string]*Node);
-      }
-
-      parentNode.Path[line] = nil;
+			_processRecursivePaths(scanner, childNode);
 		}
 	}
 }
