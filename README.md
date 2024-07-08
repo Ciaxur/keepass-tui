@@ -9,3 +9,6 @@ This repository contains wrapper scripts for a more interactive experience with 
 ## show_entry
 Uses `fzf` to display a TUI for interactive search through the given keepass database entries, then displays the content of that entry.
 
+## copy_pass
+Uses `fzf` to display a TUI for interactive search through the given keepass database entries, then displays the content of that entry and copies the password into the clipboard.
+
