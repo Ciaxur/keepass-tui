@@ -22,6 +22,8 @@ DATABASE_KEY_PATH="$1"
 echo -n "Enter key's password: "
 read -s PASSWORD
 
+# Verify credentials are gtg.
+echo "$PASSWORD" | keepassxc-cli ls "$DATABASE_KEY_PATH" > /dev/null
 
 # Enter interactive session
 print_menu
