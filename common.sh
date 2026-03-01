@@ -3,6 +3,8 @@
 SCRIPT_DIR="$(realpath $(dirname $0))"
 COMBINE_PATHS_BIN="$SCRIPT_DIR/bin/combine_dirpaths"
 
+${COMBINE_PATHS_BIN} <(echo "test") > /dev/null || { echo "ERROR: Compile the combine_dirpaths binary"; exit 1; }
+
 # Use fuzzy search to grab a selection from the database
 function get_entry_selection() {
   PASSWORD="$1"
