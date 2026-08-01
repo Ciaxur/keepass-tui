@@ -1,16 +1,27 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-SCRIPT_DIR="$(realpath $(dirname $0))"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$SCRIPT_DIR/common.sh"
 
-[ "$1" == "" ] && { echo "Please provide path to a key"; exit 1; }
+if [ $# -lt 1 ] || [ -z "$1" ]; then
+  echo "Usage: $(basename "$0") <path-to-kdbx>" >&2
+  exit 1
+fi
 DATABASE_KEY_PATH="$1"
 
+require_deps || exit 1
+
 # Grab key credentials
-echo -n "Enter key's password: "
-read -s PASSWORD
+read_password "Enter key's password: "
 
-SELECTION=$(get_entry_selection "$PASSWORD" "$DATABASE_KEY_PATH")
+# Verify credentials are gtg.
+verify_credentials "$PASSWORD" "$DATABASE_KEY_PATH" || {
+  echo "Failed to unlock database" >&2; exit 1;
+}
+
+# Cancelling the picker is not an error.
+SELECTION="$(get_entry_selection "$PASSWORD" "$DATABASE_KEY_PATH")" || exit 0
+[ -n "$SELECTION" ] || exit 0
+
 echo "$PASSWORD" | keepassxc-cli show "$DATABASE_KEY_PATH" "$SELECTION"
-

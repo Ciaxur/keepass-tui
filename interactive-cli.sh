@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-
-SCRIPT_DIR="$(realpath $(dirname $0))"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$SCRIPT_DIR/common.sh"
 
 function print_menu() {
@@ -15,36 +14,38 @@ EOF
 
 }
 
-[ "$1" == "" ] && { echo "Please provide path to a key"; exit 1; }
+if [ $# -lt 1 ] || [ -z "$1" ]; then
+  echo "Usage: $(basename "$0") <path-to-kdbx>" >&2
+  exit 1
+fi
 DATABASE_KEY_PATH="$1"
 
+require_deps || exit 1
+
 # Grab key credentials
-echo -n "Enter key's password: "
-read -s PASSWORD
+read_password "Enter key's password: "
 
 # Verify credentials are gtg.
-echo "$PASSWORD" | keepassxc-cli ls "$DATABASE_KEY_PATH" > /dev/null
+verify_credentials "$PASSWORD" "$DATABASE_KEY_PATH" || {
+  echo "Failed to unlock database" >&2; exit 1;
+}
 
 # Enter interactive session
 print_menu
-while read input; do
+while read -r input; do
   echo
 
-  case $input in
-    1)
-      # Grab entry from DB
-      SELECTION=$(get_entry_selection "$PASSWORD" "$DATABASE_KEY_PATH")
-
-      # Show & copy entry.
-      echo "$PASSWORD" | keepassxc-cli show "$DATABASE_KEY_PATH" "$SELECTION"
-      echo "$PASSWORD" | keepassxc-cli clip "$DATABASE_KEY_PATH" "$SELECTION"
-      ;;
-    2)
-      # Grab entry from DB
-      SELECTION=$(get_entry_selection "$PASSWORD" "$DATABASE_KEY_PATH")
-
-      # Show entry.
-      echo "$PASSWORD" | keepassxc-cli show "$DATABASE_KEY_PATH" "$SELECTION"
+  case "$input" in
+    1|2)
+      # A cancelled picker returns to the menu instead of killing the session.
+      if SELECTION="$(get_entry_selection "$PASSWORD" "$DATABASE_KEY_PATH")" && [ -n "$SELECTION" ]; then
+        echo "$PASSWORD" | keepassxc-cli show "$DATABASE_KEY_PATH" "$SELECTION" \
+          || echo "Failed to show entry" >&2
+        if [ "$input" == "1" ]; then
+          echo "$PASSWORD" | keepassxc-cli clip "$DATABASE_KEY_PATH" "$SELECTION" \
+            || echo "Failed to copy password" >&2
+        fi
+      fi
       ;;
     0)
       exit 0
@@ -57,5 +58,3 @@ while read input; do
   echo
   print_menu
 done
-
-
